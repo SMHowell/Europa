@@ -213,6 +213,33 @@ def CBEanalysis(data):
     
 
 
+def CBEanalysisHeatflow(data):
+    # Differential probability
+    log_data = np.log10(data)
+    n, bins = np.histogram(log_data, bins=1000, density=True) # Get histogram
+    n_smooth = savgol_filter(n, 51, 3)# Smooth a bit with Savitzky Golay
+    n_smooth[n_smooth<0]=0 # To counter any unintended behavior at the ends
+    CBE_ind = np.where(n_smooth == max(n_smooth)) 
+    CBE = bins[CBE_ind]
+    
+    # Cumulative probability
+    plt.figure(99)
+    n_cum, bins_cum, patches = plt.hist(data, bins=1000, density=True, histtype='step', cumulative=True, label='Empirical')
+    plt.close(99)
+    CBE_cum = n_cum[CBE_ind]
+    CBE_cum_lo = CBE_cum * 0.341
+    CBE_cum_hi = (1-CBE_cum) * 0.341
+    
+    CBE_lo = CBE - bins[(np.abs(n_cum - (CBE_cum-CBE_cum_lo))).argmin()]
+    CBE_hi = bins[(np.abs(n_cum - (CBE_cum+CBE_cum_hi))).argmin()] - CBE
+        
+    CBE_hi = 10**(CBE+CBE_hi)-10**CBE
+    CBE_lo = 10**(CBE-CBE_lo)
+    CBE = 10**CBE
+    
+    # Return data
+    varOut = MCCBE(CBE,CBE_hi,CBE_lo,bins[0:-1],n_smooth/np.max(n_smooth),n_cum)
+    return varOut
 
 def condAnalysis(data,thicknessSamples,thicknessCBE,dice):
     

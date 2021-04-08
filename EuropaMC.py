@@ -467,24 +467,28 @@ D_brittle_CBE = EMC.CBEanalysis(D_brittle_cond)
 " Heat Fluxes "
 # Interior Heat Flux 
 q_i_cond = EMC.condAnalysis(MC.q_i,MC.D_tot,D_tot_CBE.CBE,dice)
-q_i_CBE = EMC.CBEanalysis(np.log10(q_i_cond))
+q_i_CBE = EMC.CBEanalysisHeatflow(q_i_cond)
 # Radiative Heat Flux
 q_ir_cond = EMC.condAnalysis(MC.q_ir,MC.D_tot,D_tot_CBE.CBE,dice)
-q_ir_CBE = EMC.CBEanalysis(np.log10(q_ir_cond))
+q_ir_CBE = EMC.CBEanalysisHeatflow(q_ir_cond)
 # Rocky Tidal Heat Flux
 q_it_cond = EMC.condAnalysis(MC.q_it,MC.D_tot,D_tot_CBE.CBE,dice)
-q_it_CBE = EMC.CBEanalysis(np.log10(q_it_cond))
+q_it_CBE = EMC.CBEanalysisHeatflow(q_it_cond)
 # Convective Heat Flux
 q_c_cond = EMC.condAnalysis(MC.q_c,MC.D_tot,D_tot_CBE.CBE,dice)
-q_c_CBE = EMC.CBEanalysis(np.log10(q_c_cond))
+q_c_CBE = EMC.CBEanalysisHeatflow(q_c_cond)
 # Surface Heat Flux
 q_s_cond = EMC.condAnalysis(MC.q_s,MC.D_tot,D_tot_CBE.CBE,dice)
-q_s_CBE = EMC.CBEanalysis(np.log10(q_s_cond))
+q_s_CBE = EMC.CBEanalysisHeatflow(q_s_cond)
+
 
 " Temperatures "
 # Conductive Temperature 
 T_cond_base_cond = EMC.condAnalysis(MC.T_cond_base,MC.D_tot,D_tot_CBE.CBE,dice)
 T_cond_base_CBE = EMC.CBEanalysis(T_cond_base_cond)
+
+T_c_cond = EMC.condAnalysis(MC.T_c,MC.D_tot,D_tot_CBE.CBE,dice)
+T_c_CBE = EMC.CBEanalysis(T_c_cond)
 
 " Rheology "
 eta_c_cond = EMC.condAnalysis(MC.eta_c,MC.D_tot,D_tot_CBE.CBE,dice)
@@ -612,7 +616,7 @@ print('Testing Relationships - May take an hour for N=1e7, a day for N=1e8')
 varNum = 0;
 varData = [MC.D_tot, MC.D_cond, MC.D_conv, MC.D_H2O, MC.D_rock, MC.D_iron, # 6 entries
            MC.T_s, MC.T_c, MC.T_phi, MC.T_m, MC.T_cond_base, # 5 entries
-           MC.q_i, MC.q_ir, MC.q_it, MC.q_c,  # 4 entries
+           MC.q_s,MC.q_i, MC.q_ir, MC.q_it, MC.q_c,  # 4 entries
            MC.rho_cond, MC.rho_conv, MC.rho_ocn, MC.rho_rock, MC.rho_iron, # 5 entries
            MC.G_conv, MC.G_cond, # 2 entries
            MC.d, MC.d_del, MC.eta_c, MC.D0v, MC.D0b, MC.Qv, MC.Qb, MC.epsilon,  # 8 entries
@@ -620,7 +624,7 @@ varData = [MC.D_tot, MC.D_cond, MC.D_conv, MC.D_H2O, MC.D_rock, MC.D_iron, # 6 e
 
 rowHeads =["D_tot", "D_cond", "D_conv", "D_H2O", "D_rock", "D_iron", 
            "T_s", "T_c", "T_phi", "T_m", "T_cond_base",
-           "q_i", "q_ir", "q_it", "q_c",  
+           "q_s","q_i", "q_ir", "q_it", "q_c",  
            "rho_cond", "rho_conv", "rho_ocn", "rho_rock", "rho_iron", 
            "G_conv", "G_cond", 
            "d", "d_del", "eta_c", "D0v", "D0b", "Qv", "Qb", "epsilon",  
@@ -797,7 +801,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 
 # I reccomend a screen cap--trying to vectorize heat maps may freeze your machine
 # fig.savefig("full_heatmap.pdf", bbox_inches='tight')
-
+fig.savefig("full_heatmap.png", bbox_inches='tight')
 
 " Zoomed full heatmap "
 fig = plt.figure(8); 
@@ -805,7 +809,7 @@ plt.clf()
 
 # Get quantiles
 ax = fig.add_subplot(1, 1, 1)
-plt.hist2d(MC.D_cond/1e3,MC.D_conv/1e3,bins=1000,range=[[0,30],[0,30]],cmap="inferno",norm=mpl.colors.LogNorm())
+plt.hist2d(MC.D_cond/1e3,MC.D_conv/1e3,bins=300,range=[[0,30],[0,30]],cmap="inferno",norm=mpl.colors.LogNorm())
 
 ax.set_facecolor('black')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -821,7 +825,7 @@ plt.clf()
 
 # Get quantiles
 ax = fig.add_subplot(1, 1, 1)
-plt.hist2d(MC.D_tot/1e3,MC.D_cond/1e3,bins=1000,range=[[0,160],[0,160]],cmap="inferno")
+plt.hist2d(MC.D_tot/1e3,MC.D_cond/1e3,bins=1000,range=[[0,160],[0,160]],cmap="inferno",norm=mpl.colors.LogNorm())
 
 ax.set_facecolor('black')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -831,19 +835,20 @@ plt.gca().set_aspect('equal', adjustable='box')
 fig.savefig("cond_heatmap.png", bbox_inches='tight')
 
 
-" Conductive  heatmap "
+" Convective  heatmap "
 fig = plt.figure(10); 
 plt.clf()
 
 # Get quantiles
 ax = fig.add_subplot(1, 1, 1)
-plt.hist2d(MC.D_tot/1e3,MC.D_conv/1e3,bins=1000,range=[[0,160],[0,160]],cmap="inferno")
+plt.hist2d(MC.D_tot/1e3,MC.D_conv/1e3,bins=1000,range=[[0,160],[0,160]],cmap="inferno",norm=mpl.colors.LogNorm())
 
 ax.set_facecolor('black')
 plt.gca().set_aspect('equal', adjustable='box')
 
 # I reccomend a screen cap--trying to vectorize heat maps may freeze your machine
 # fig.savefig("cond_heatmap.pdf", bbox_inches='tight')
+fig.savefig("conv_heatmap.png", bbox_inches='tight')
 
 
 
